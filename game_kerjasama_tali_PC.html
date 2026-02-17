@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BONDED · TALI TARIK 90px</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            user-select: none;
+        }
+        body {
+            background: #0b0f1a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .game-container {
+            background: #1e2b3c;
+            padding: 20px;
+            border-radius: 40px;
+            box-shadow: 0 30px 40px #00000080, 0 0 0 3px #3f6792;
+        }
+        canvas {
+            display: block;
+            width: 1000px;
+            height: 500px;
+            border-radius: 30px;
+            background: #1b3f5c;
+            box-shadow: inset 0 0 30px #0c1a2b;
+        }
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding: 0 10px;
+        }
+        .hud-left {
+            display: flex;
+            gap: 20px;
+        }
+        .hud-item {
+            background: #25374a;
+            color: white;
+            padding: 8px 28px;
+            border-radius: 50px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            border: 1px solid #5b88b5;
+            box-shadow: 0 4px 0 #101b28;
+        }
+        .hud-item span {
+            color: #f4d03f;
+            margin-left: 8px;
+        }
+        .pause-btn {
+            background: #e67e22;
+            border: none;
+            color: white;
+            font-size: 1.3rem;
+            font-weight: bold;
+            padding: 8px 30px;
+            border-radius: 60px;
+            cursor: pointer;
+            border: 2px solid #f39c12;
+            transition: 0.2s;
+            box-shadow: 0 4px 0 #b85e1a;
+        }
+        .pause-btn:hover {
+            background: #d35400;
+            transform: scale(1.02);
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+        .modal {
+            background: #1d2b3f;
+            padding: 50px 70px;
+            border-radius: 90px;
+            text-align: center;
+            border: 4px solid #3f85b5;
+            box-shadow: 0 0 50px #2a7fb4;
+        }
+        .modal h1 {
+            font-size: 5rem;
+            color: white;
+            text-shadow: 0 0 30px #3fa0e0;
+            margin-bottom: 20px;
+        }
+        .modal h2 {
+            font-size: 3rem;
+            color: #f1c40f;
+            margin-bottom: 30px;
+        }
+        .modal p {
+            color: #bdd3f0;
+            font-size: 1.3rem;
+            margin: 20px 0;
+        }
+        .btn-group {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: #2c5282;
+            border: none;
+            color: white;
+            font-size: 1.6rem;
+            font-weight: bold;
+            padding: 18px 40px;
+            border-radius: 60px;
+            cursor: pointer;
+            border: 2px solid #63b3ed;
+            min-width: 200px;
+            transition: 0.2s;
+        }
+        .btn:hover {
+            background: #2b6cb0;
+            transform: scale(1.05);
+            box-shadow: 0 0 30px #63b3ed;
+        }
+        .btn.small {
+            font-size: 1.3rem;
+            padding: 12px 30px;
+        }
+        .hidden {
+            display: none;
+        }
+        .key {
+            background: #2d3748;
+            border: 2px solid #a0aec0;
+            padding: 5px 15px;
+            border-radius: 12px;
+            margin: 3px;
+            font-weight: bold;
+            color: #f7fafc;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="1000" height="500"></canvas>
+        <div class="hud">
+            <div class="hud-left">
+                <div class="hud-item">❤️ <span id="lives">3</span></div>
+                <div class="hud-item">📦 <span id="level">1</span>/3</div>
+                <div class="hud-item">🚩 <span id="checkpoint">1</span></div>
+            </div>
+            <button class="pause-btn" id="pauseButton">⏸️ PAUSE</button>
+        </div>
+    </div>
+
+    <!-- MENU UTAMA -->
+    <div id="mainMenu" class="modal-overlay">
+        <div class="modal">
+            <h1>BONDED</h1>
+            <p style="font-size:1.5rem;">Pilih mode:</p>
+            <div class="btn-group">
+                <button class="btn" id="soloBtn">👤 SOLO</button>
+                <button class="btn" id="multiBtn">👥 MULTI</button>
+            </div>
+            <p style="margin-top:40px;"><span class="key">A</span> <span class="key">W</span> <span class="key">D</span> (merah) <br> <span class="key">←</span> <span class="key">↑</span> <span class="key">→</span> (biru) — hanya multi</p>
+        </div>
+    </div>
+
+    <!-- PAUSE MENU -->
+    <div id="pauseMenu" class="modal-overlay hidden">
+        <div class="modal">
+            <h2>⏸️ PAUSE</h2>
+            <div class="btn-group">
+                <button class="btn small" id="resumeBtn">▶️ LANJUT</button>
+                <button class="btn small" id="menuBtn">🏠 MENU</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WIN MENU -->
+    <div id="winMenu" class="modal-overlay hidden">
+        <div class="modal">
+            <h1>🎉 VICTORY</h1>
+            <p>Semua level terselesaikan!</p>
+            <button class="btn" id="winToMenu">MENU</button>
+        </div>
+    </div>
+
+    <!-- LOSE MENU -->
+    <div id="loseMenu" class="modal-overlay hidden">
+        <div class="modal">
+            <h1>💔 GAME OVER</h1>
+            <p>Nyawa habis...</p>
+            <button class="btn" id="loseToMenu">MENU</button>
+        </div>
+    </div>
+
+    <script>
+        // ==================== INISIALISASI ====================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const livesSpan = document.getElementById('lives');
+        const levelSpan = document.getElementById('level');
+        const checkpointSpan = document.getElementById('checkpoint');
+
+        // Elemen menu
+        const mainMenu = document.getElementById('mainMenu');
+        const pauseMenu = document.getElementById('pauseMenu');
+        const winMenu = document.getElementById('winMenu');
+        const loseMenu = document.getElementById('loseMenu');
+        const soloBtn = document.getElementById('soloBtn');
+        const multiBtn = document.getElementById('multiBtn');
+        const pauseBtn = document.getElementById('pauseButton');
+        const resumeBtn = document.getElementById('resumeBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const winToMenu = document.getElementById('winToMenu');
+        const loseToMenu = document.getElementById('loseToMenu');
+
+        // ==================== STATE GLOBAL ====================
+        let gameRunning = false;
+        let paused = false;
+        let soloMode = false;       // true = solo (satu karakter), false = multi (dua karakter)
+        let currentLevel = 1;
+        const maxLevel = 3;
+        let lives = 3;
+        let checkpointLevel = 1;    // level terakhir yang dicapai
+
+        // ==================== KONSTANTA FISIKA ====================
+        const GRAVITY = 0.5;
+        const MOVE_SPEED = 4.2;
+        const JUMP_FORCE = -9.8;
+        const PLAYER_SIZE = 28;
+        const PLAYER_HALF = PLAYER_SIZE/2;
+        const TETHER_LENGTH = 90;   // panjang tali ideal 3cm (anggap 90 pixel)
+        const SPRING_CONSTANT = 0.15; // kekuatan tarik (jika terlalu jauh)
+
+        // Player objects
+        let player1 = { x: 100, y: 400, vx: 0, vy: 0, grounded: false, w: PLAYER_SIZE, h: PLAYER_SIZE, color: '#e74c3c' };
+        let player2 = { x: 190, y: 400, vx: 0, vy: 0, grounded: false, w: PLAYER_SIZE, h: PLAYER_SIZE, color: '#3498db' };
+
+        // ==================== LEVEL DATA ====================
+        const levels = [
+            { // LEVEL 1
+                platforms: [
+                    { x: 0, y: 450, w: 280, h: 20 },
+                    { x: 360, y: 400, w: 120, h: 20 },
+                    { x: 560, y: 350, w: 100, h: 20 },
+                    { x: 740, y: 420, w: 260, h: 20 }
+                ],
+                exit: { x: 920, y: 370, w: 40, h: 50 },
+                startPos1: { x: 60, y: 400 },
+                startPos2: { x: 150, y: 400 }, // jarak 90
+                moving: [],
+                lasers: []
+            },
+            { // LEVEL 2
+                platforms: [
+                    { x: 0, y: 450, w: 240, h: 20 },
+                    { x: 320, y: 400, w: 100, h: 20 },
+                    { x: 500, y: 350, w: 80, h: 20 },
+                    { x: 660, y: 400, w: 120, h: 20 },
+                    { x: 860, y: 430, w: 140, h: 20 }
+                ],
+                exit: { x: 940, y: 380, w: 40, h: 50 },
+                startPos1: { x: 40, y: 400 },
+                startPos2: { x: 130, y: 400 },
+                moving: [
+                    { x: 400, y: 300, w: 80, h: 20, dx: 2, minX: 350, maxX: 550 }
+                ],
+                lasers: [
+                    { x1: 600, y1: 200, x2: 600, y2: 470, active: true, interval: 80, timer: 0 }
+                ]
+            },
+            { // LEVEL 3
+                platforms: [
+                    { x: 0, y: 450, w: 200, h: 20 },
+                    { x: 270, y: 400, w: 100, h: 20 },
+                    { x: 440, y: 320, w: 90, h: 20 },
+                    { x: 610, y: 380, w: 110, h: 20 },
+                    { x: 800, y: 430, w: 200, h: 20 }
+                ],
+                exit: { x: 940, y: 380, w: 40, h: 50 },
+                startPos1: { x: 40, y: 400 },
+                startPos2: { x: 130, y: 400 },
+                moving: [
+                    { x: 200, y: 250, w: 80, h: 20, dy: 1.5, minY: 200, maxY: 300 },
+                    { x: 520, y: 300, w: 70, h: 20, dx: 2.5, minX: 470, maxX: 590 }
+                ],
+                lasers: [
+                    { x1: 350, y1: 200, x2: 350, y2: 400, active: true, interval: 70, timer: 10 },
+                    { x1: 700, y1: 250, x2: 820, y2: 250, active: true, interval: 100, timer: 30 }
+                ]
+            }
+        ];
+
+        // Data level aktif
+        let platforms = [];
+        let exit = {};
+        let movingPlatforms = [];
+        let lasers = [];
+
+        // Key states
+        const keys = {};
+
+        // ==================== FUNGSI LEVEL ====================
+        function loadLevel(levelNum) {
+            const lvl = levels[levelNum-1];
+            platforms = lvl.platforms.map(p => ({...p}));
+            exit = {...lvl.exit};
+            movingPlatforms = lvl.moving ? lvl.moving.map(p => ({...p, originalX: p.x, originalY: p.y})) : [];
+            lasers = lvl.lasers ? lvl.lasers.map(l => ({...l, timer: l.timer || 0})) : [];
+
+            // Set posisi awal sesuai checkpoint
+            if (levelNum === checkpointLevel) {
+                player1.x = lvl.startPos1.x;
+                player1.y = lvl.startPos1.y;
+                player2.x = lvl.startPos2.x;
+                player2.y = lvl.startPos2.y;
+            } else {
+                player1.x = lvl.startPos1.x;
+                player1.y = lvl.startPos1.y;
+                player2.x = lvl.startPos2.x;
+                player2.y = lvl.startPos2.y;
+            }
+            
+            // Pastikan jarak awal tidak terlalu jauh (jika lebih dari TETHER_LENGTH, biarkan saja nanti ditarik)
+            // Tapi kita bisa set agar tidak terlalu jauh dari awal
+            if (!soloMode) {
+                let dx = player2.x - player1.x;
+                let dy = player2.y - player1.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > TETHER_LENGTH * 1.5) {
+                    // Jika terlalu jauh, kita tarik manual agar tidak kaget
+                    let scale = TETHER_LENGTH / dist;
+                    player2.x = player1.x + dx * scale;
+                    player2.y = player1.y + dy * scale;
+                }
+                // batas layar
+                if (player2.x + player2.w > canvas.width) {
+                    player2.x = canvas.width - player2.w;
+                    player1.x = player2.x - TETHER_LENGTH;
+                }
+                if (player1.x < 0) {
+                    player1.x = 0;
+                    player2.x = TETHER_LENGTH;
+                }
+            }
+
+            player1.vx = player1.vy = 0;
+            player2.vx = player2.vy = 0;
+
+            levelSpan.textContent = levelNum;
+            checkpointSpan.textContent = checkpointLevel;
+        }
+
+        function resetGame() {
+            lives = 3;
+            currentLevel = 1;
+            checkpointLevel = 1;
+            loadLevel(1);
+            livesSpan.textContent = lives;
+            gameRunning = true;
+            paused = false;
+            mainMenu.classList.add('hidden');
+            pauseMenu.classList.add('hidden');
+            winMenu.classList.add('hidden');
+            loseMenu.classList.add('hidden');
+        }
+
+        function nextLevel() {
+            if (currentLevel < maxLevel) {
+                currentLevel++;
+                if (currentLevel > checkpointLevel) {
+                    checkpointLevel = currentLevel;
+                }
+                loadLevel(currentLevel);
+            } else {
+                gameRunning = false;
+                winMenu.classList.remove('hidden');
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            loseMenu.classList.remove('hidden');
+        }
+
+        function loseLife() {
+            lives--;
+            livesSpan.textContent = lives;
+            if (lives <= 0) {
+                gameOver();
+            } else {
+                const lvl = levels[currentLevel-1];
+                player1.x = lvl.startPos1.x;
+                player1.y = lvl.startPos1.y;
+                player2.x = lvl.startPos2.x;
+                player2.y = lvl.startPos2.y;
+                // Atur jarak jika terlalu jauh
+                if (!soloMode) {
+                    let dx = player2.x - player1.x;
+                    let dy = player2.y - player1.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist > TETHER_LENGTH * 1.5) {
+                        let scale = TETHER_LENGTH / dist;
+                        player2.x = player1.x + dx * scale;
+                        player2.y = player1.y + dy * scale;
+                    }
+                    if (player2.x + player2.w > canvas.width) {
+                        player2.x = canvas.width - player2.w;
+                        player1.x = player2.x - TETHER_LENGTH;
+                    }
+                    if (player1.x < 0) {
+                        player1.x = 0;
+                        player2.x = TETHER_LENGTH;
+                    }
+                }
+                player1.vx = player1.vy = 0;
+                player2.vx = player2.vy = 0;
+            }
+        }
+
+        // ==================== COLLISION ====================
+        function collide(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.w &&
+                   rect1.x + rect1.w > rect2.x &&
+                   rect1.y < rect2.y + rect2.h &&
+                   rect1.y + rect1.h > rect2.y;
+        }
+
+        // ==================== UPDATE ====================
+        function update() {
+            if (!gameRunning || paused) return;
+
+            // Simpan posisi lama untuk rollback collision
+            let oldX1 = player1.x, oldY1 = player1.y;
+            let oldX2 = player2.x, oldY2 = player2.y;
+
+            // === KONTROL ===
+            if (!soloMode) {  // MULTIPLAYER
+                // Player 1 (A,W,D)
+                if (keys['KeyA']) player1.vx = -MOVE_SPEED;
+                else if (keys['KeyD']) player1.vx = MOVE_SPEED;
+                else player1.vx *= 0.7;
+
+                if (keys['KeyW'] && player1.grounded) {
+                    player1.vy = JUMP_FORCE;
+                    player1.grounded = false;
+                }
+
+                // Player 2 (panah)
+                if (keys['ArrowLeft']) player2.vx = -MOVE_SPEED;
+                else if (keys['ArrowRight']) player2.vx = MOVE_SPEED;
+                else player2.vx *= 0.7;
+
+                if (keys['ArrowUp'] && player2.grounded) {
+                    player2.vy = JUMP_FORCE;
+                    player2.grounded = false;
+                }
+            } else {  // SOLO: hanya player1
+                if (keys['KeyA']) player1.vx = -MOVE_SPEED;
+                else if (keys['KeyD']) player1.vx = MOVE_SPEED;
+                else player1.vx *= 0.7;
+
+                if (keys['KeyW'] && player1.grounded) {
+                    player1.vy = JUMP_FORCE;
+                    player1.grounded = false;
+                }
+            }
+
+            // GRAVITASI
+            player1.vy += GRAVITY;
+            if (!soloMode) player2.vy += GRAVITY;
+
+            // UPDATE POSISI SEMENTARA
+            player1.x += player1.vx;
+            player1.y += player1.vy;
+            if (!soloMode) {
+                player2.x += player2.vx;
+                player2.y += player2.vy;
+            }
+
+            // TERAPKAN GAYA TALI (HANYA MULTI) - HANYA TARIK JIKA TERLALU JAUH
+            if (!soloMode) {
+                let dx = player2.x - player1.x;
+                let dy = player2.y - player1.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > TETHER_LENGTH) {
+                    // gaya tarik proporsional dengan kelebihan jarak
+                    let force = SPRING_CONSTANT * (dist - TETHER_LENGTH);
+                    let fx = (dx / dist) * force;
+                    let fy = (dy / dist) * force;
+                    player1.vx += fx;
+                    player1.vy += fy;
+                    player2.vx -= fx;
+                    player2.vy -= fy;
+                }
+            }
+
+            // BATAS LAYAR HORIZONTAL
+            player1.x = Math.max(0, Math.min(player1.x, canvas.width - player1.w));
+            if (!soloMode) player2.x = Math.max(0, Math.min(player2.x, canvas.width - player2.w));
+
+            // UPDATE PLATFORM BERGERAK
+            movingPlatforms.forEach(p => {
+                if (p.dx) {
+                    p.x += p.dx;
+                    if (p.x < p.minX || p.x > p.maxX) p.dx *= -1;
+                }
+                if (p.dy) {
+                    p.y += p.dy;
+                    if (p.y < p.minY || p.y > p.maxY) p.dy *= -1;
+                }
+            });
+
+            // RESET GROUNDED
+            player1.grounded = false;
+            if (!soloMode) player2.grounded = false;
+
+            // COLLISION PLATFORM (STATIS & BERGERAK)
+            [player1, ...(soloMode ? [] : [player2])].forEach(p => {
+                // Platform statis
+                platforms.forEach(plat => {
+                    if (collide({x:p.x, y:p.y, w:p.w, h:p.h}, {x:plat.x, y:plat.y, w:plat.w, h:plat.h})) {
+                        // dari atas
+                        if (p.vy > 0 && p.y + p.h - p.vy <= plat.y) {
+                            p.y = plat.y - p.h;
+                            p.vy = 0;
+                            p.grounded = true;
+                        }
+                        // dari bawah
+                        else if (p.vy < 0 && p.y >= plat.y + plat.h) {
+                            p.y = plat.y + plat.h;
+                            p.vy = 0;
+                        }
+                        // samping
+                        else {
+                            if (p === player1) {
+                                p.x = oldX1;
+                                player1.vx = 0;
+                            } else {
+                                p.x = oldX2;
+                                player2.vx = 0;
+                            }
+                        }
+                    }
+                });
+
+                // Platform bergerak
+                movingPlatforms.forEach(plat => {
+                    if (collide({x:p.x, y:p.y, w:p.w, h:p.h}, {x:plat.x, y:plat.y, w:plat.w, h:plat.h})) {
+                        if (p.vy > 0 && p.y + p.h - p.vy <= plat.y) {
+                            p.y = plat.y - p.h;
+                            p.vy = 0;
+                            p.grounded = true;
+                            if (plat.dx) p.x += plat.dx; // ikut platform
+                        } else if (p.vy < 0 && p.y >= plat.y + plat.h) {
+                            p.y = plat.y + plat.h;
+                            p.vy = 0;
+                        } else {
+                            if (p === player1) {
+                                p.x = oldX1;
+                                player1.vx = 0;
+                            } else {
+                                p.x = oldX2;
+                                player2.vx = 0;
+                            }
+                        }
+                    }
+                });
+            });
+
+            // LASER
+            lasers.forEach(laser => {
+                laser.timer++;
+                if (laser.timer >= laser.interval) {
+                    laser.active = !laser.active;
+                    laser.timer = 0;
+                }
+                if (!laser.active) return;
+
+                let rect;
+                if (laser.x1 === laser.x2) { // vertikal
+                    rect = { x: laser.x1 - 6, y: Math.min(laser.y1, laser.y2), w: 12, h: Math.abs(laser.y2 - laser.y1) };
+                } else { // horizontal
+                    rect = { x: Math.min(laser.x1, laser.x2), y: laser.y1 - 6, w: Math.abs(laser.x2 - laser.x1), h: 12 };
+                }
+
+                [player1, ...(soloMode ? [] : [player2])].forEach(p => {
+                    if (collide({x:p.x, y:p.y, w:p.w, h:p.h}, rect)) {
+                        loseLife();
+                    }
+                });
+            });
+
+            // JATUH KE BAWAH
+            if (player1.y + player1.h > canvas.height) loseLife();
+            if (!soloMode && player2.y + player2.h > canvas.height) loseLife();
+
+            // CEK EXIT
+            let p1InExit = collide({x:player1.x, y:player1.y, w:player1.w, h:player1.h}, exit);
+            let p2InExit = !soloMode ? collide({x:player2.x, y:player2.y, w:player2.w, h:player2.h}, exit) : true;
+
+            if (p1InExit && p2InExit) {
+                nextLevel();
+            }
+        }
+
+        // ==================== GAMBAR ====================
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Background gradien
+            let grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#1e4b6e');
+            grad.addColorStop(1, '#0a1c2f');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Bintang
+            ctx.fillStyle = '#ffffff40';
+            for (let i=0; i<20; i++) {
+                ctx.beginPath();
+                ctx.arc(100 + i*70, 50 + (i%3)*30, 2, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // Platform statis
+            ctx.shadowColor = '#2b1e0f';
+            ctx.shadowBlur = 12;
+            platforms.forEach(p => {
+                ctx.fillStyle = '#8b6b4f';
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = '#b38b6b';
+                ctx.fillRect(p.x, p.y-4, p.w, 6);
+            });
+
+            // Platform bergerak
+            movingPlatforms.forEach(p => {
+                ctx.fillStyle = '#c87e4a';
+                ctx.fillRect(p.x, p.y, p.w, p.h);
+                ctx.fillStyle = '#e5a36f';
+                ctx.fillRect(p.x, p.y-4, p.w, 6);
+                // indikator
+                ctx.fillStyle = '#f1c40f';
+                ctx.beginPath();
+                ctx.arc(p.x + p.w/2, p.y-12, 5, 0, 2*Math.PI);
+                ctx.fill();
+            });
+
+            // Laser
+            lasers.forEach(laser => {
+                ctx.lineWidth = laser.active ? 8 : 4;
+                ctx.strokeStyle = laser.active ? '#ff4444' : '#666';
+                ctx.shadowColor = laser.active ? '#ff0000' : 'transparent';
+                ctx.shadowBlur = laser.active ? 20 : 0;
+                ctx.beginPath();
+                ctx.moveTo(laser.x1, laser.y1);
+                ctx.lineTo(laser.x2, laser.y2);
+                ctx.stroke();
+            });
+
+            // Exit
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = '#2ecc71';
+            ctx.fillRect(exit.x, exit.y, exit.w, exit.h);
+            ctx.fillStyle = '#27ae60';
+            ctx.fillRect(exit.x+5, exit.y-5, exit.w-10, 10);
+            ctx.font = 'bold 20px "Segoe UI"';
+            ctx.fillStyle = 'white';
+            ctx.shadowColor = '#000';
+            ctx.fillText('EXIT', exit.x+5, exit.y+35);
+
+            // Tali (hanya multi)
+            if (!soloMode) {
+                ctx.shadowBlur = 0;
+                ctx.beginPath();
+                ctx.strokeStyle = '#dddddd';
+                ctx.lineWidth = 4;
+                ctx.setLineDash([6, 6]);
+                ctx.moveTo(player1.x + PLAYER_HALF, player1.y + PLAYER_HALF);
+                ctx.lineTo(player2.x + PLAYER_HALF, player2.y + PLAYER_HALF);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Player 1
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = player1.color;
+            ctx.fillRect(player1.x, player1.y, player1.w, player1.h);
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(player1.x+5, player1.y+5, 5, 5);
+            ctx.fillRect(player1.x+15, player1.y+5, 5, 5);
+            ctx.fillStyle = '#c0392b';
+            ctx.fillRect(player1.x+2, player1.y-8, 20, 8);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px monospace';
+            ctx.fillText('P1', player1.x+6, player1.y-14);
+
+            // Player 2 (hanya multi)
+            if (!soloMode) {
+                ctx.fillStyle = player2.color;
+                ctx.fillRect(player2.x, player2.y, player2.w, player2.h);
+                ctx.fillStyle = '#fff';
+                ctx.fillRect(player2.x+5, player2.y+5, 5, 5);
+                ctx.fillRect(player2.x+15, player2.y+5, 5, 5);
+                ctx.fillStyle = '#2980b9';
+                ctx.fillRect(player2.x+2, player2.y-8, 20, 8);
+                ctx.fillStyle = '#fff';
+                ctx.fillText('P2', player2.x+6, player2.y-14);
+            }
+
+            ctx.shadowBlur = 0;
+        }
+
+        // ==================== GAME LOOP ====================
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+
+        // ==================== EVENT LISTENERS ====================
+        window.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyA', 'KeyW', 'KeyD'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+
+        // Mode buttons
+        soloBtn.addEventListener('click', () => {
+            soloMode = true;
+            resetGame();
+        });
+        multiBtn.addEventListener('click', () => {
+            soloMode = false;
+            resetGame();
+        });
+
+        // Pause
+        pauseBtn.addEventListener('click', () => {
+            if (gameRunning) {
+                paused = true;
+                pauseMenu.classList.remove('hidden');
+            }
+        });
+        resumeBtn.addEventListener('click', () => {
+            paused = false;
+            pauseMenu.classList.add('hidden');
+        });
+        menuBtn.addEventListener('click', () => {
+            gameRunning = false;
+            paused = false;
+            pauseMenu.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        });
+
+        winToMenu.addEventListener('click', () => {
+            winMenu.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        });
+        loseToMenu.addEventListener('click', () => {
+            loseMenu.classList.add('hidden');
+            mainMenu.classList.remove('hidden');
+        });
+
+        // Inisialisasi
+        mainMenu.classList.remove('hidden');
+        gameRunning = false;
+        loadLevel(1);
+    </script>
+</body>
+</html>
